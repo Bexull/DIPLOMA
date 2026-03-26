@@ -37,8 +37,17 @@ export function useWebSocket() {
   const connect = useCallback(() => {
     if (ws.current?.readyState === WebSocket.OPEN) return;
 
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const socket = new WebSocket(`${protocol}//${window.location.host}/ws/realtime`);
+    const apiUrl = import.meta.env.VITE_API_URL;
+    let wsUrl: string;
+    if (apiUrl) {
+      const url = new URL(apiUrl);
+      const protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
+      wsUrl = `${protocol}//${url.host}/ws/realtime`;
+    } else {
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      wsUrl = `${protocol}//${window.location.host}/ws/realtime`;
+    }
+    const socket = new WebSocket(wsUrl);
 
     socket.onopen = () => {
       setConnected(true);
