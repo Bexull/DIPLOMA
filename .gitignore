@@ -1,0 +1,16 @@
+node_modules/
+dist/
+__pycache__/
+*.pyc
+.env
+*.db
+backend/data/
+backend/app/models/*.pkl
+backend/app/models/*.pt
+backend/app/models/*.json
+backend/app/models/*.png
+.venv/
+.idea/
+.vscode/
+.DS_Store
+.claude/
