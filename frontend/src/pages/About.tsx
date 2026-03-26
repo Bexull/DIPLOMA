@@ -1,6 +1,6 @@
 import { ArrowRight, Brain, Cpu, Layers, Monitor, Sparkles, Telescope, Workflow } from 'lucide-react';
-import { Card, Typography, Row, Col, Space, Tag, Flex, Divider } from 'antd';
-import { colors, hero, chart, tones } from '../theme';
+import { Card, Typography, Row, Col, Space, Tag, Flex } from 'antd';
+import { colors, hero } from '../theme';
 
 const metricTileStyle: React.CSSProperties = {
   background: hero.tileBg,

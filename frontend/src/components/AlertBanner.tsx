@@ -1,5 +1,4 @@
 import { Alert } from 'antd';
-import { colors, hero } from '../theme';
 
 interface Props {
   type: 'success' | 'error' | 'info';

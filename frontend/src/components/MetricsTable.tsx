@@ -1,7 +1,6 @@
 import { Table } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import type { ModelInfo } from '../api';
-import { colors } from '../theme';
 
 interface Props {
   models: Record<string, ModelInfo>;

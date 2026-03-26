@@ -9,7 +9,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { Card, Typography, Row, Col, Space, Tag, Progress, Flex, Spin, Alert, Empty } from 'antd';
+import { Card, Typography, Row, Col, Space, Tag, Progress, Flex, Spin, Alert } from 'antd';
 import MetricsTable from '../components/MetricsTable';
 import { getModels, type ModelInfo } from '../api';
 import { Brain, Layers, Medal, Sparkles, Workflow } from 'lucide-react';

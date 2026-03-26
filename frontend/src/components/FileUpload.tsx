@@ -1,7 +1,7 @@
 import { Upload, Typography, Space, Tag, Spin } from 'antd';
 import { InboxOutlined } from '@ant-design/icons';
 import type { UploadProps } from 'antd';
-import { colors, hero } from '../theme';
+import { colors } from '../theme';
 
 interface Props {
   onFile: (file: File) => void;

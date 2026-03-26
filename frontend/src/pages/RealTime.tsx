@@ -13,7 +13,6 @@ import {
   Square,
   Wifi,
   WifiOff,
-  type LucideIcon,
 } from 'lucide-react';
 import {
   Area,
@@ -43,7 +42,7 @@ import {
   Statistic,
   Divider,
 } from 'antd';
-import { colors, hero, chart, tones } from '../theme';
+import { colors, hero, chart } from '../theme';
 
 /* -- Scenarios ---------------------------------------- */
 
@@ -107,7 +106,7 @@ export default function RealTime() {
     connected, records, status, running, scenario, completed,
     connect, runScenario, stop,
   } = useWebSocket();
-  const [tableOpen, setTableOpen] = useState(false);
+  const [, setTableOpen] = useState(false);
 
   useEffect(() => {
     if (!connected) connect();

@@ -25,7 +25,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { Card, Typography, Row, Col, Space, Tag, Flex, Statistic, Empty, Spin } from 'antd';
+import { Card, Typography, Row, Col, Space, Tag, Flex, Spin } from 'antd';
 import { getStats, getHistory, type Stats, type AnalysisSummary } from '../api';
 import { colors, hero, chart, tones } from '../theme';
 
