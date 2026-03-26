@@ -6,6 +6,10 @@ __pycache__/
 *.db
 backend/data/CICIDS2017_synthetic.csv
 backend/app/models/*.png
+backend/app/models/random_forest.pkl
+backend/app/models/autoencoder.pt
+backend/app/models/mlp.pt
+backend/app/models/lightgbm.pkl
 .venv/
 .idea/
 .vscode/
