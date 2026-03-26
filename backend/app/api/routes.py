@@ -182,12 +182,11 @@ async def analyze_url_endpoint(request: URLAnalysisRequest):
     """
     Анализ безопасности URL-адреса.
 
-    Проверяет SSL-сертификат, заголовки безопасности и
-    прогоняет характеристики соединения через ML-pipeline.
+    Проверяет SSL-сертификат, заголовки безопасности,
+    URL-паттерны и threat intelligence.
     """
-    pipeline = get_pipeline()
     try:
-        result = await analyze_url(request.url, pipeline)
+        result = await analyze_url(request.url)
         return result
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))

@@ -4,10 +4,7 @@ __pycache__/
 *.pyc
 .env
 *.db
-backend/data/
-backend/app/models/*.pkl
-backend/app/models/*.pt
-backend/app/models/*.json
+backend/data/CICIDS2017_synthetic.csv
 backend/app/models/*.png
 .venv/
 .idea/
