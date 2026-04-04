@@ -197,8 +197,8 @@ export default function ModelComparison() {
               <Col span={12}>
                 <div style={heroTileStyle}>
                   <div style={heroLabelStyle}>Фокус</div>
-                  <div style={heroValueStyle}>Known + Zero-day</div>
-                  <div style={heroNoteStyle}>Комбинация reconstruction error и классификации</div>
+                  <div style={heroValueStyle}>Аномалии + классы</div>
+                  <div style={heroNoteStyle}>Reconstruction error + классификация типа атаки</div>
                 </div>
               </Col>
             </Row>
@@ -222,7 +222,7 @@ export default function ModelComparison() {
                   </Flex>
                   <div>
                     <div style={{ fontSize: 14, fontWeight: 600 }}>Уровень 1: Автоэнкодер</div>
-                    <div style={{ fontSize: 12, fontWeight: 400, color: colors.textSecondary }}>Обнаружение аномалий и zero-day паттернов</div>
+                    <div style={{ fontSize: 12, fontWeight: 400, color: colors.textSecondary }}>Обнаружение аномального трафика по ошибке реконструкции</div>
                   </div>
                 </Flex>
               }
@@ -300,7 +300,7 @@ export default function ModelComparison() {
           <BarChart data={chartData} barGap={6}>
             <CartesianGrid strokeDasharray="3 3" stroke={chart.grid} vertical={false} />
             <XAxis dataKey="name" stroke={chart.axis} fontSize={12} tickLine={false} axisLine={false} />
-            <YAxis domain={[90, 100]} stroke={chart.axis} fontSize={11} tickLine={false} axisLine={false} />
+            <YAxis domain={[0, 100]} stroke={chart.axis} fontSize={11} tickLine={false} axisLine={false} />
             <Tooltip
               contentStyle={chart.tooltip}
               formatter={(value) => `${typeof value === 'number' ? value : Number(value ?? 0)}%`}
@@ -312,6 +312,55 @@ export default function ModelComparison() {
             <Bar dataKey="F1 Macro" fill={colors.warning} radius={[6, 6, 0, 0]} maxBarSize={38} />
           </BarChart>
         </ResponsiveContainer>
+      </Card>
+
+      {/* Training details */}
+      <Card
+        title={
+          <div>
+            <div style={{ fontSize: 16, fontWeight: 600 }}>Детали обучения</div>
+            <div style={{ fontSize: 13, fontWeight: 400, color: colors.textSecondary, marginTop: 4 }}>Параметры датасета, предобработки и валидации.</div>
+          </div>
+        }
+      >
+        <Row gutter={[16, 16]}>
+          <Col xs={24} md={8}>
+            <div style={{ borderRadius: 16, border: `1px solid ${colors.border}`, background: colors.bgTile, padding: '16px 20px' }}>
+              <Text type="secondary" style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.15em' }}>Датасет</Text>
+              <div style={{ marginTop: 8 }}>
+                <Text strong>CICIDS2017-compatible (синтетический)</Text>
+                <div style={{ marginTop: 4 }}>
+                  <Text type="secondary" style={{ fontSize: 13 }}>200 000 записей, 65 признаков</Text>
+                </div>
+                <div style={{ marginTop: 4 }}>
+                  <Text type="secondary" style={{ fontSize: 13 }}>8 классов: BENIGN, DDoS, DoS, PortScan, Brute Force, Web Attack, Bot, Infiltration</Text>
+                </div>
+              </div>
+            </div>
+          </Col>
+          <Col xs={24} md={8}>
+            <div style={{ borderRadius: 16, border: `1px solid ${colors.border}`, background: colors.bgTile, padding: '16px 20px' }}>
+              <Text type="secondary" style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.15em' }}>Баланс классов</Text>
+              <div style={{ marginTop: 8 }}>
+                <Text strong>BENIGN: 60% (120 000)</Text>
+                <div style={{ marginTop: 4 }}>
+                  <Text type="secondary" style={{ fontSize: 13 }}>DDoS: 10%, DoS: 8%, PortScan: 8%, Brute Force: 5%, Web Attack: 4%, Bot: 3%, Infiltration: 2%</Text>
+                </div>
+              </div>
+            </div>
+          </Col>
+          <Col xs={24} md={8}>
+            <div style={{ borderRadius: 16, border: `1px solid ${colors.border}`, background: colors.bgTile, padding: '16px 20px' }}>
+              <Text type="secondary" style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.15em' }}>Валидация</Text>
+              <div style={{ marginTop: 8 }}>
+                <Text strong>Train/Test: 80/20</Text>
+                <div style={{ marginTop: 4 }}>
+                  <Text type="secondary" style={{ fontSize: 13 }}>Стратифицированное разбиение (random_state=42). StandardScaler нормализация. Train: 160 000, Test: 40 000</Text>
+                </div>
+              </div>
+            </div>
+          </Col>
+        </Row>
       </Card>
 
       {/* Detailed metrics table */}
@@ -329,7 +378,14 @@ export default function ModelComparison() {
       {/* Confusion matrices */}
       {classifiers
         .filter(([, model]) => model.confusion_matrix?.length)
-        .map(([name, model]) => (
+        .map(([name, model]) => {
+          const cm = model.confusion_matrix!;
+          const classLabels = ['BENIGN', 'Bot', 'Brute Force', 'DDoS', 'DoS', 'Infiltration', 'PortScan', 'Web Attack'];
+          const totalSamples = cm.reduce((s, row) => s + row.reduce((a, b) => a + b, 0), 0);
+          const correctSamples = cm.reduce((s, row, i) => s + (row[i] ?? 0), 0);
+          const fp = cm.reduce((s, row, i) => s + row.reduce((a, v, j) => j !== i ? a + v : a, 0), 0);
+          const fn = cm.reduce((s, row, i) => s + row.reduce((a, value) => a + value, 0) - (row[i] ?? 0), 0);
+          return (
           <Card
             key={name}
             title={
@@ -339,24 +395,57 @@ export default function ModelComparison() {
               </Flex>
             }
           >
+            <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
+              <Col xs={8}>
+                <div style={{ padding: '12px 16px', borderRadius: 12, background: colors.bgTile, border: `1px solid ${colors.border}` }}>
+                  <Text type="secondary" style={{ fontSize: 11, textTransform: 'uppercase' }}>Верных</Text>
+                  <div style={{ fontSize: 18, fontWeight: 600, color: colors.success }}>{correctSamples.toLocaleString()} <Text type="secondary" style={{ fontSize: 12 }}>/ {totalSamples.toLocaleString()}</Text></div>
+                </div>
+              </Col>
+              <Col xs={8}>
+                <div style={{ padding: '12px 16px', borderRadius: 12, background: colors.bgTile, border: `1px solid ${colors.border}` }}>
+                  <Text type="secondary" style={{ fontSize: 11, textTransform: 'uppercase' }}>Ложные тревоги (FP)</Text>
+                  <div style={{ fontSize: 18, fontWeight: 600, color: colors.warning }}>{fp}</div>
+                  <Text type="secondary" style={{ fontSize: 11 }}>Норму приняли за атаку</Text>
+                </div>
+              </Col>
+              <Col xs={8}>
+                <div style={{ padding: '12px 16px', borderRadius: 12, background: colors.bgTile, border: `1px solid ${colors.border}` }}>
+                  <Text type="secondary" style={{ fontSize: 11, textTransform: 'uppercase' }}>Пропущенные (FN)</Text>
+                  <div style={{ fontSize: 18, fontWeight: 600, color: colors.danger }}>{fn}</div>
+                  <Text type="secondary" style={{ fontSize: 11 }}>Атаку приняли за норму</Text>
+                </div>
+              </Col>
+            </Row>
             <div style={{ overflowX: 'auto' }}>
               <table style={{ borderCollapse: 'collapse', fontSize: 12 }}>
+                <thead>
+                  <tr>
+                    <td style={{ padding: '4px 8px', fontSize: 10, fontWeight: 600, color: colors.textSecondary }}>Факт \ Предсказание</td>
+                    {classLabels.slice(0, cm.length).map((label) => (
+                      <td key={label} style={{ padding: '4px 6px', fontSize: 10, fontWeight: 600, color: colors.textSecondary, textAlign: 'center', maxWidth: 60, wordBreak: 'break-word' }}>{label}</td>
+                    ))}
+                  </tr>
+                </thead>
                 <tbody>
-                  {model.confusion_matrix!.map((row, i) => {
+                  {cm.map((row, i) => {
                     const rowMax = Math.max(...row, 1);
                     return (
                       <tr key={i}>
+                        <td style={{ padding: '4px 8px', fontSize: 11, fontWeight: 600, color: colors.textSecondary, whiteSpace: 'nowrap' }}>{classLabels[i] ?? `Class ${i}`}</td>
                         {row.map((value, j) => (
                           <td
                             key={j}
                             style={{
                               height: 36,
-                              width: 36,
+                              minWidth: 36,
+                              padding: '4px 6px',
                               border: `1px solid ${colors.border}`,
                               textAlign: 'center',
                               fontVariantNumeric: 'tabular-nums',
+                              fontWeight: i === j ? 700 : 400,
                               backgroundColor: value > 0
-                                ? hexToRgba(colors.primary, Math.min(value / rowMax, 0.75))
+                                ? hexToRgba(i === j ? colors.success : colors.danger, Math.min(value / rowMax, 0.75))
                                 : colors.bgTile,
                               color: value > 0 && (value / rowMax) > 0.5 ? '#ffffff' : colors.text,
                             }}
@@ -370,8 +459,12 @@ export default function ModelComparison() {
                 </tbody>
               </table>
             </div>
+            <Paragraph type="secondary" style={{ marginTop: 12, fontSize: 12, marginBottom: 0 }}>
+              Диагональ (зелёные) — верные предсказания. Вне диагонали (красные) — ошибки: строка показывает реальный класс, столбец — предсказанный.
+            </Paragraph>
           </Card>
-        ))}
+          );
+        })}
     </Space>
   );
 }

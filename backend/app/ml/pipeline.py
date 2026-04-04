@@ -7,6 +7,7 @@
 
 import numpy as np
 import joblib
+import json
 import os
 from typing import Optional
 
@@ -29,6 +30,7 @@ class IDSPipeline:
         label_encoder=None,
         scaler=None,
         feature_names: list = None,
+        benign_stats: dict = None,
     ):
         self.anomaly_detector = anomaly_detector
         self.classifier = classifier
@@ -36,13 +38,15 @@ class IDSPipeline:
         self.label_encoder = label_encoder
         self.scaler = scaler
         self.feature_names = feature_names
+        self.benign_stats = benign_stats or {}
 
-    def predict(self, X: np.ndarray) -> list:
+    def predict(self, X: np.ndarray, feature_names: list = None) -> list:
         """
         Двухуровневое предсказание.
 
         Args:
             X: нормализованные признаки (n_samples, n_features)
+            feature_names: имена признаков для вычисления вклада
 
         Returns:
             list of dict: для каждого сэмпла:
@@ -50,6 +54,9 @@ class IDSPipeline:
                 - attack_type: str (или 'BENIGN')
                 - anomaly_score: float (ошибка реконструкции)
                 - confidence: float
+                - confidence_type: str
+                - threshold: float
+                - top_features: list
         """
         results = []
 
@@ -68,22 +75,45 @@ class IDSPipeline:
                 pred_class = int(class_predictions[i])
                 attack_type = self.label_encoder.inverse_transform([pred_class])[0]
                 confidence = float(np.max(class_probas[i]))
+                confidence_type = 'classifier'
 
                 if attack_type == 'BENIGN':
                     attack_type = 'Unknown Attack'
                     confidence = float(anomaly_scores[i])
+                    confidence_type = 'anomaly_score'
             else:
                 attack_type = 'BENIGN'
-                confidence = 1.0 - float(
-                    anomaly_scores[i] / (self.anomaly_detector.threshold + 1e-8)
-                )
-                confidence = max(0.0, min(1.0, confidence))
+                ratio = float(anomaly_scores[i] / (self.anomaly_detector.threshold + 1e-8))
+                confidence = round(max(0.0, min(1.0, 1.0 - ratio)), 4)
+                confidence_type = 'anomaly_inverse'
+
+            # Compute feature deviations from normal baselines
+            top_features = []
+            if feature_names and self.benign_stats:
+                for fname_idx, fname in enumerate(feature_names):
+                    if fname_idx < X.shape[1] and fname in self.benign_stats:
+                        stats = self.benign_stats[fname]
+                        val = float(X[i, fname_idx])
+                        mean = stats['mean']
+                        std = max(stats['std'], 1e-8)
+                        deviation = abs(val - mean) / std
+                        top_features.append({
+                            'feature': fname,
+                            'value': round(val, 4),
+                            'normal_mean': round(mean, 4),
+                            'deviation': round(deviation, 2),
+                        })
+                top_features.sort(key=lambda x: x['deviation'], reverse=True)
+                top_features = top_features[:5]
 
             results.append({
                 'is_attack': is_anomaly,
                 'attack_type': attack_type,
                 'anomaly_score': float(anomaly_scores[i]),
                 'confidence': round(confidence, 4),
+                'confidence_type': confidence_type,
+                'threshold': float(self.anomaly_detector.threshold),
+                'top_features': top_features,
             })
 
         return results
@@ -98,7 +128,7 @@ class IDSPipeline:
         if self.scaler is not None:
             x = self.scaler.transform(x)
 
-        results = self.predict(x)
+        results = self.predict(x, feature_names=self.feature_names)
         return results[0]
 
     def predict_batch(self, df) -> list:
@@ -114,13 +144,19 @@ class IDSPipeline:
                 if f.strip() in stripped:
                     available_features.append(stripped[f.strip()])
 
+        if not available_features:
+            raise ValueError(
+                "CSV не содержит признаков CICIDS2017. "
+                "Необходимы колонки: Flow Duration, Total Fwd Packets и др."
+            )
+
         X = df[available_features].values.astype(np.float32)
         X = np.nan_to_num(X, nan=0.0, posinf=0.0, neginf=0.0)
 
         if self.scaler is not None:
             X = self.scaler.transform(X)
 
-        return self.predict(X)
+        return self.predict(X, feature_names=available_features)
 
     @classmethod
     def load(cls, models_dir: str, classifier_name: str = 'xgboost') -> 'IDSPipeline':
@@ -146,6 +182,13 @@ class IDSPipeline:
             pkl_path = os.path.join(models_dir, f'{clf_lower}.pkl')
             classifier = joblib.load(pkl_path)
 
+        # Load benign baseline statistics for feature contributions
+        benign_stats = {}
+        stats_path = os.path.join(models_dir, 'benign_stats.json')
+        if os.path.exists(stats_path):
+            with open(stats_path, 'r') as f:
+                benign_stats = json.load(f)
+
         return cls(
             anomaly_detector=anomaly_detector,
             classifier=classifier,
@@ -153,4 +196,5 @@ class IDSPipeline:
             label_encoder=label_encoder,
             scaler=scaler,
             feature_names=feature_names,
+            benign_stats=benign_stats,
         )

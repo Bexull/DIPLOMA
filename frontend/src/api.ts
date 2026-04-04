@@ -9,11 +9,21 @@ async function request<T>(url: string, options?: RequestInit): Promise<T> {
   return res.json();
 }
 
+export interface FeatureContribution {
+  feature: string;
+  value: number;
+  normal_mean: number;
+  deviation: number;
+}
+
 export interface Prediction {
   is_attack: boolean;
   attack_type: string;
   anomaly_score: number;
   confidence: number;
+  confidence_type?: string;
+  threshold?: number;
+  top_features?: FeatureContribution[];
 }
 
 export interface AnalysisResponse {

@@ -17,15 +17,15 @@ const archBlockStyles: Record<string, React.CSSProperties> = {
 };
 
 const models = [
-  { name: 'Autoencoder', tech: 'PyTorch', desc: 'Обнаружение аномалий, encoder 65->32->16->8 и зеркальный decoder.' },
+  { name: 'Autoencoder', tech: 'NumPy (инференс)', desc: 'Обнаружение аномалий, encoder 65->32->16->8 и зеркальный decoder. Обучен в PyTorch, инференс на NumPy.' },
   { name: 'Random Forest', tech: 'scikit-learn', desc: 'Понятный baseline на ансамбле деревьев решений.' },
   { name: 'XGBoost', tech: 'xgboost', desc: 'Главный классификатор для точной типизации атак.' },
   { name: 'LightGBM', tech: 'lightgbm', desc: 'Быстрый бустинг для сравнения скорости и качества.' },
-  { name: 'MLP Neural Net', tech: 'PyTorch', desc: 'Полносвязная нейросеть с 3 скрытыми слоями 128->64->32.' },
+  { name: 'MLP Neural Net', tech: 'NumPy (инференс)', desc: 'Полносвязная нейросеть с 3 скрытыми слоями 128->64->32. Обучена в PyTorch, инференс на NumPy.' },
 ];
 
 const stacks = [
-  { cat: 'ML / AI', items: ['scikit-learn', 'XGBoost', 'LightGBM', 'PyTorch'] },
+  { cat: 'ML / AI', items: ['scikit-learn', 'XGBoost', 'LightGBM', 'NumPy', 'PyTorch (обучение)'] },
   { cat: 'Backend', items: ['FastAPI', 'SQLite', 'uvicorn', 'WebSocket'] },
   { cat: 'Frontend', items: ['React', 'TypeScript', 'Ant Design', 'Recharts'] },
 ];
@@ -52,7 +52,7 @@ export default function About() {
                 2-stage detection
               </Tag>
               <Tag color="purple" icon={<Telescope size={15} style={{ verticalAlign: 'middle' }} />}>
-                Zero-day oriented
+                Anomaly-based detection
               </Tag>
               <Tag color="purple" icon={<Monitor size={15} style={{ verticalAlign: 'middle' }} />}>
                 Dashboard + Live monitor
@@ -121,7 +121,7 @@ export default function About() {
             }
           >
             <Typography.Paragraph type="secondary">
-              Нейросеть обучена только на нормальном трафике. Она пытается восстановить входной вектор признаков и использует reconstruction error как сигнал аномалии. Это даёт шанс заметить и неизвестные атаки, которые не входят в train-набор.
+              Нейросеть обучена только на нормальном трафике. Она пытается восстановить входной вектор признаков и использует reconstruction error как сигнал аномалии. Это позволяет обнаруживать аномальный трафик, отличающийся от обучающего распределения. Модель обучена в PyTorch, инференс выполняется на NumPy для лёгкого развёртывания.
             </Typography.Paragraph>
           </Card>
         </Col>
@@ -137,7 +137,7 @@ export default function About() {
             }
           >
             <Typography.Paragraph type="secondary">
-              После подтверждения аномалии поток передаётся в один из классических ML-классификаторов. Они отличают DDoS, PortScan, Brute Force, Web Attack и другие категории, чтобы итоговый вердикт был пригоден для расследования.
+              После подтверждения аномалии поток передаётся в классификатор. В рабочем pipeline по умолчанию используется XGBoost, а в исследовательской части проекта он сравнивается с LightGBM, Random Forest и MLP. Классификатор отличает DDoS, PortScan, Brute Force, Web Attack и другие категории, чтобы итоговый вердикт был пригоден для расследования.
             </Typography.Paragraph>
           </Card>
         </Col>

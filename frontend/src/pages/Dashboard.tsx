@@ -43,7 +43,7 @@ export default function Dashboard() {
   useEffect(() => {
     Promise.all([getStats(), getHistory(10)])
       .then(([s, h]) => { setStats(s); setHistory(h.analyses); })
-      .catch(() => {})
+      .catch((e) => { console.error('Dashboard load error:', e); })
       .finally(() => setLoading(false));
   }, []);
 
@@ -51,19 +51,12 @@ export default function Dashboard() {
   const attackPercentage = stats?.attack_percentage ?? 0;
 
   const timelineData = useMemo(() => (
-    Array.from({ length: 24 }, (_, index) => {
-      const safeBase = 64 + Math.round(Math.sin(index / 3.2) * 10) + (history.length % 5);
-      const attacks = hasData
-        ? Math.max(0, Math.round((attackPercentage / 100) * (12 + ((index * 7) % 15)) + (index % 6 === 0 ? 4 : 0)))
-        : 0;
-
-      return {
-        hour: `${String(index).padStart(2, '0')}:00`,
-        safe: Math.max(18, safeBase - Math.round(attacks * 0.22)),
-        attacks,
-      };
-    })
-  ), [attackPercentage, hasData, history.length]);
+    history.map((h) => ({
+      label: new Date(h.timestamp).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }),
+      safe: h.total_records - h.attacks_found,
+      attacks: h.attacks_found,
+    }))
+  ), [history]);
 
   const attackBarData = stats?.attack_distribution
     ? Object.entries(stats.attack_distribution)
@@ -230,8 +223,8 @@ export default function Dashboard() {
             title={
               <Flex justify="space-between" align="flex-end" wrap="wrap" gap={12}>
                 <div>
-                  <Title level={5} style={{ margin: 0 }}>Ритм обнаружения за 24 часа</Title>
-                  <Text type="secondary" style={{ fontSize: 13 }}>Визуальная модель общей интенсивности нормального и подозрительного трафика.</Text>
+                  <Title level={5} style={{ margin: 0 }}>История анализов</Title>
+                  <Text type="secondary" style={{ fontSize: 13 }}>Количество безопасных и подозрительных записей по каждой сессии анализа.</Text>
                 </div>
                 <Space size={8}>
                   <Tag color="success">Норма</Tag>
@@ -241,26 +234,30 @@ export default function Dashboard() {
             }
             styles={{ body: { padding: 24 } }}
           >
-            <ResponsiveContainer width="100%" height={280}>
-              <AreaChart data={timelineData}>
-                <defs>
-                  <linearGradient id="dashboardSafe" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor={chart.safe} stopOpacity={0.18} />
-                    <stop offset="100%" stopColor={chart.safe} stopOpacity={0} />
-                  </linearGradient>
-                  <linearGradient id="dashboardAttack" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor={chart.attack} stopOpacity={0.2} />
-                    <stop offset="100%" stopColor={chart.attack} stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke={chart.grid} vertical={false} />
-                <XAxis dataKey="hour" stroke={chart.axis} fontSize={12} tickLine={false} axisLine={false} interval={3} />
-                <YAxis stroke={chart.axis} fontSize={12} tickLine={false} axisLine={false} width={32} />
-                <Tooltip contentStyle={tooltipStyle} />
-                <Area type="monotone" dataKey="safe" stroke={chart.safe} fill="url(#dashboardSafe)" strokeWidth={2.1} name="Безопасный" />
-                <Area type="monotone" dataKey="attacks" stroke={chart.attack} fill="url(#dashboardAttack)" strokeWidth={2.1} name="Подозрительный" />
-              </AreaChart>
-            </ResponsiveContainer>
+            {timelineData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={280}>
+                <AreaChart data={timelineData}>
+                  <defs>
+                    <linearGradient id="dashboardSafe" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor={chart.safe} stopOpacity={0.18} />
+                      <stop offset="100%" stopColor={chart.safe} stopOpacity={0} />
+                    </linearGradient>
+                    <linearGradient id="dashboardAttack" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor={chart.attack} stopOpacity={0.2} />
+                      <stop offset="100%" stopColor={chart.attack} stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke={chart.grid} vertical={false} />
+                  <XAxis dataKey="label" stroke={chart.axis} fontSize={12} tickLine={false} axisLine={false} />
+                  <YAxis stroke={chart.axis} fontSize={12} tickLine={false} axisLine={false} width={48} />
+                  <Tooltip contentStyle={tooltipStyle} />
+                  <Area type="monotone" dataKey="safe" stroke={chart.safe} fill="url(#dashboardSafe)" strokeWidth={2.1} name="Безопасный" />
+                  <Area type="monotone" dataKey="attacks" stroke={chart.attack} fill="url(#dashboardAttack)" strokeWidth={2.1} name="Подозрительный" />
+                </AreaChart>
+              </ResponsiveContainer>
+            ) : (
+              <EmptyPanel title="Нет данных для графика" text="Проведите анализ, чтобы увидеть историю обнаружений." />
+            )}
           </Card>
         </Col>
         <Col xs={24} xl={10}>
@@ -417,8 +414,8 @@ export default function Dashboard() {
                 styles={{ body: { padding: 24 } }}
               >
                 <Space direction="vertical" size={12} style={{ width: '100%' }}>
-                  <SystemLine label="Уровень 1" value="PyTorch Autoencoder" dotColor={colors.primary} />
-                  <SystemLine label="Уровень 2" value="XGBoost / LightGBM / RF / MLP" dotColor={colors.warning} />
+                  <SystemLine label="Уровень 1" value="Autoencoder (NumPy inference)" dotColor={colors.primary} />
+                  <SystemLine label="Уровень 2" value="XGBoost active, LightGBM / RF / MLP compared" dotColor={colors.warning} />
                   <SystemLine label="История" value="SQLite + REST summary" dotColor={colors.info} />
                   <SystemLine label="Live поток" value="WebSocket realtime stream" dotColor={colors.success} />
                 </Space>
@@ -434,7 +431,7 @@ export default function Dashboard() {
                     <MetaTile title="Категорий" value={`${pieData.length || 7} типов`} />
                   </Col>
                   <Col xs={12}>
-                    <MetaTile title="Фокус" value="Zero-day + known attacks" />
+                    <MetaTile title="Фокус" value="Аномалии + классификация" />
                   </Col>
                 </Row>
               </Card>

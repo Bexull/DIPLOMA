@@ -42,11 +42,21 @@ def get_pipeline():
 
 # --- Pydantic модели ---
 
+class FeatureContribution(BaseModel):
+    feature: str
+    value: float
+    normal_mean: float
+    deviation: float
+
+
 class PredictionResult(BaseModel):
     is_attack: bool
     attack_type: str
     anomaly_score: float
     confidence: float
+    confidence_type: str = ''
+    threshold: float = 0.0
+    top_features: list[FeatureContribution] = []
 
 
 class AnalysisResponse(BaseModel):
@@ -79,7 +89,7 @@ async def analyze_traffic(
     Загрузите CSV-файл с сетевым трафиком (формат CICIDS2017).
     Система проанализирует каждую запись и определит атаки.
     """
-    if not file.filename.endswith('.csv'):
+    if not file.filename or not file.filename.lower().endswith('.csv'):
         raise HTTPException(400, "Поддерживаются только CSV файлы")
 
     pipeline = get_pipeline()

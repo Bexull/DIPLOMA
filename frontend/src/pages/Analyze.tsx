@@ -100,16 +100,33 @@ function CsvAnalysis() {
         ),
     },
     {
-      title: 'Anomaly',
+      title: 'Anomaly / Порог',
       dataIndex: 'anomaly_score',
       align: 'right' as const,
-      render: (v: number) => v.toFixed(6),
+      render: (v: number, r: Prediction) => {
+        const threshold = r.threshold ?? 0;
+        const ratio = threshold > 0 ? (v / threshold) : 0;
+        return (
+          <span title={`Порог: ${threshold.toFixed(4)}`}>
+            {v.toFixed(4)}{' '}
+            {threshold > 0 && (
+              <Typography.Text type="secondary" style={{ fontSize: 11 }}>
+                ({ratio.toFixed(1)}x)
+              </Typography.Text>
+            )}
+          </span>
+        );
+      },
     },
     {
       title: 'Confidence',
       dataIndex: 'confidence',
       align: 'right' as const,
-      render: (v: number) => `${(v * 100).toFixed(1)}%`,
+      render: (v: number, r: Prediction) => (
+        <span title={r.confidence_type === 'classifier' ? 'Из классификатора' : 'На основе anomaly score'}>
+          {(v * 100).toFixed(1)}%
+        </span>
+      ),
     },
   ];
 
@@ -271,14 +288,42 @@ function CsvAnalysis() {
               scroll={{ y: 500 }}
               rowKey={(_: unknown, i?: number) => String(i)}
               rowClassName={(record: Prediction) => (record.is_attack ? 'attack-row' : '')}
+              expandable={{
+                expandedRowRender: (record: Prediction) => {
+                  const features = record.top_features;
+                  if (!features || features.length === 0) {
+                    return <Typography.Text type="secondary">Нет данных о признаках</Typography.Text>;
+                  }
+                  return (
+                    <div style={{ padding: '8px 0' }}>
+                      <Typography.Text strong style={{ fontSize: 12, display: 'block', marginBottom: 8 }}>
+                        Ключевые признаки, повлиявшие на решение:
+                      </Typography.Text>
+                      <Row gutter={[8, 8]}>
+                        {features.map((f) => (
+                          <Col xs={24} sm={12} md={8} key={f.feature}>
+                            <div style={{ padding: '8px 12px', borderRadius: 8, background: f.deviation > 2 ? '#fff2f0' : '#f6ffed', border: `1px solid ${f.deviation > 2 ? '#ffccc7' : '#b7eb8f'}` }}>
+                              <Typography.Text strong style={{ fontSize: 12 }}>{f.feature}</Typography.Text>
+                              <div style={{ fontSize: 11, color: '#595959', marginTop: 2 }}>
+                                Значение: <strong>{f.value.toFixed(2)}</strong> | Норма: {f.normal_mean.toFixed(2)} | Отклонение: <strong>{f.deviation}x</strong>
+                              </div>
+                            </div>
+                          </Col>
+                        ))}
+                      </Row>
+                    </div>
+                  );
+                },
+                rowExpandable: (record: Prediction) => !!(record.top_features && record.top_features.length > 0),
+              }}
             />
             {filtered.length > 1000 && (
-              <Typography.Text
-                type="secondary"
-                style={{ display: 'block', textAlign: 'center', marginTop: 12, fontSize: 12 }}
-              >
-                Показано 1 000 из {filtered.length.toLocaleString()} строк
-              </Typography.Text>
+              <Alert
+                type="info"
+                showIcon
+                style={{ marginTop: 12 }}
+                message={`Показано 1 000 из ${filtered.length.toLocaleString()} строк. Статистика рассчитана по всем записям.`}
+              />
             )}
           </Card>
         </>
@@ -573,10 +618,10 @@ function UrlAnalysis() {
                 </Typography.Text>
                 <Space direction="vertical" size={14} style={{ width: '100%' }}>
                   {([
-                    { label: 'SSL/TLS', value: result.score_breakdown.ssl_tls, max: 25 },
-                    { label: 'Заголовки', value: result.score_breakdown.headers, max: 30 },
-                    { label: 'URL и домен', value: result.score_breakdown.url_domain, max: 25 },
-                    { label: 'Контент', value: result.score_breakdown.content_behavior, max: 20 },
+                    { label: 'SSL/TLS', value: result.score_breakdown.ssl_tls, max: 20 },
+                    { label: 'Заголовки', value: result.score_breakdown.headers, max: 25 },
+                    { label: 'URL и домен', value: result.score_breakdown.url_domain, max: 20 },
+                    { label: 'Контент', value: result.score_breakdown.content_behavior, max: 15 },
                     { label: 'Threat Intel', value: result.score_breakdown.threat_intel, max: 20 },
                   ] as const).map((item) => {
                     const pct = Math.round((item.value / item.max) * 100);

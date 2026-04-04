@@ -144,7 +144,9 @@ async def realtime_monitoring(websocket: WebSocket):
 
     except WebSocketDisconnect:
         manager.disconnect(websocket)
-    except Exception:
+    except Exception as e:
+        import logging
+        logging.error(f"WebSocket error: {e}")
         manager.disconnect(websocket)
 
 
@@ -169,6 +171,7 @@ async def _run_live_monitor(websocket: WebSocket):
     })
 
     record_index = 0
+    all_results = []
 
     while True:
         new_connections = tracker.get_new_connections()
@@ -176,6 +179,7 @@ async def _run_live_monitor(websocket: WebSocket):
         for conn in new_connections:
             features = connection_to_features(conn)
             result = _pipeline.predict_single(features)
+            all_results.append(result)
 
             # Определяем приложение по PID
             proc_name = ''
@@ -215,7 +219,7 @@ async def _run_live_monitor(websocket: WebSocket):
                     'title': 'Мониторинг реального трафика',
                     'message': f'Мониторинг остановлен: {record_index} соединений проанализировано',
                     'total': record_index,
-                    'attacks': 0,
+                    'attacks': sum(1 for r in all_results if r['is_attack']),
                 })
                 return
         except asyncio.TimeoutError:

@@ -86,7 +86,7 @@ const ATTACK_INFO: Record<string, { danger: string; traffic: string; model: stri
     model: 'Автоэнкодер поймал аномалию по совокупности: Flow Duration, Init_Win_bytes, Down/Up Ratio.',
   },
   'Unknown Attack': {
-    danger: 'Неизвестная аномалия -- потенциальная zero-day атака.',
+    danger: 'Неизвестная аномалия — трафик отклоняется от нормального профиля.',
     traffic: 'Трафик не похож на нормальный и не совпадает с известными паттернами атак.',
     model: 'Автоэнкодер обнаружил аномалию, но классификатор не смог определить тип -- это преимущество двухуровневой архитектуры.',
   },
@@ -153,10 +153,10 @@ export default function RealTime() {
               Live Detection
             </Typography.Text>
             <Typography.Title level={2} style={{ color: hero.text, margin: '16px 0 0' }}>
-              Мониторинг показывает реальный поток, а не симулирует dashboard.
+              Мониторинг соединений и воспроизведение сценариев атак
             </Typography.Title>
             <Typography.Paragraph style={{ color: hero.textMuted, marginTop: 16, marginBottom: 0 }}>
-              Запускайте сценарии атак или анализируйте собственные соединения через WebSocket. Ниже видны текущий риск, состав трафика и объяснение, почему модель решила, что поток подозрительный.
+              Запускайте сценарии атак (воспроизведение заранее записанных данных CICIDS2017) или просматривайте системные соединения вашей машины. Оценка угроз основана на статистическом профиле — это не полноценный DPI (Deep Packet Inspection).
             </Typography.Paragraph>
             <Space style={{ marginTop: 16 }} wrap>
               <Tag
@@ -235,17 +235,17 @@ export default function RealTime() {
                   </div>
                   <Typography.Title level={4} style={{ marginTop: 20 }}>Мой трафик</Typography.Title>
                   <Typography.Paragraph type="secondary" style={{ flex: 1 }}>
-                    Анализируйте реальные сетевые соединения вашей машины в режиме live.
+                    Мониторинг системных соединений. Оценка угроз на основе статистического профиля — не является полноценным DPI (Deep Packet Inspection).
                   </Typography.Paragraph>
                   <Flex justify="space-between" align="center" style={{ marginTop: 24 }}>
-                    <Tag>Realtime capture</Tag>
+                    <Tag>Мониторинг соединений</Tag>
                     <Wifi size={20} style={{ color: colors.textMuted }} />
                   </Flex>
                 </Flex>
               </Card>
             </Col>
             <Col xs={24} xl={14}>
-              <Card title="Сценарии атаки" extra={<Typography.Text type="secondary" style={{ fontSize: 13 }}>Выберите готовую имитацию</Typography.Text>}>
+              <Card title="Сценарии атаки" extra={<Typography.Text type="secondary" style={{ fontSize: 13 }}>Воспроизведение записанных данных CICIDS2017</Typography.Text>}>
                 <Row gutter={[16, 16]}>
                   {ATTACKS.map((attack) => {
                     const Icon = attack.icon;
@@ -419,7 +419,7 @@ function ThreatBar({ pct, total, attacks, safe, running }: {
           <Typography.Text type="secondary">{total} потоков в текущем окне анализа</Typography.Text>
           {running && (
             <div style={{ marginTop: 8 }}>
-              <Tag color="purple">Live capture</Tag>
+              <Tag color="purple">Мониторинг активен</Tag>
             </div>
           )}
         </div>
