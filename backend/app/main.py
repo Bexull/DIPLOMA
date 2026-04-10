@@ -27,7 +27,7 @@ async def lifespan(app: FastAPI):
 
     # Загрузка ML pipeline (если модели обучены)
     pipeline = None
-    autoencoder_path = os.path.join(MODELS_DIR, 'autoencoder.pt')
+    autoencoder_path = os.path.join(MODELS_DIR, 'autoencoder.npz')
 
     if os.path.exists(autoencoder_path):
         try:

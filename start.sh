@@ -35,9 +35,9 @@ else
     echo "[2/3] Frontend-зависимости уже установлены."
 fi
 
-# Проверка моделей
-if [ ! -f "backend/app/models/autoencoder.pt" ]; then
-    echo "[!] Модели не обучены. Запускаю обучение..."
+# Проверка моделей (в гите лежат .npz веса)
+if [ ! -f "backend/app/models/autoencoder.npz" ]; then
+    echo "[!] Модели не найдены. Запускаю обучение..."
     cd backend
     source .venv/bin/activate
 
@@ -49,6 +49,7 @@ if [ ! -f "backend/app/models/autoencoder.pt" ]; then
 
     echo "  Обучение моделей (2-3 минуты)..."
     python3 -m app.ml.training --data-dir ./data --models-dir ./app/models
+    python3 convert_to_numpy.py
     cd ..
 fi
 
